@@ -1,7 +1,6 @@
 const User = require('../models/User.js');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
 // Login Function
 const Login = async (req, res) => {
@@ -29,22 +28,16 @@ const Login = async (req, res) => {
       { expiresIn: '3d' }
     );
 
-    // Set cookie with token
-    res.cookie('token', token, {
-      httpOnly: true,
-      // secure: process.env.NODE_ENV === 'production', // set to true if using HTTPS
-      secure: false, // set to true if using HTTPS
-      maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
-    });
-
     // Send response with token and user details
     res.status(200).json({
       message: 'Login Successful',
+      token,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         gender: user.gender,
+        isAdmin: user.isAdmin,
       },
     });
   } catch (error) {
@@ -54,7 +47,7 @@ const Login = async (req, res) => {
 
 const Register = async (req, res) => {
   try {
-    const { name, email, password, gender } = req.body;
+    const { name, email, password, gender, isAdmin } = req.body;
     // check if user already exists
     const userExists = await User.findOne({ where: { email } });
     if (userExists) {
@@ -67,6 +60,7 @@ const Register = async (req, res) => {
       email,
       password,
       gender,
+      isAdmin,
     });
 
     // Create JWT token for the user after they are created
@@ -76,22 +70,16 @@ const Register = async (req, res) => {
       { expiresIn: '3d' } // token expiration
     );
 
-    // Set cookie with token
-    res.cookie('token', token, {
-      httpOnly: true,
-      // secure: process.env.NODE_ENV === 'production', // set to true if using HTTPS
-      secure: false, // set to true if using HTTPS
-      maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
-    });
-
     // Send response with token and user details
     res.status(200).json({
       message: 'User created successfully',
+      token,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         gender: user.gender,
+        isAdmin: user.isAdmin,
       },
     });
   } catch (error) {
@@ -110,9 +98,26 @@ const Logout = async (req, res) => {
 
 const ValidateToken = async (req, res) => {
   try {
-    res.status(200).json({ message: 'Token is valid' });
+    // Extract the Bearer token from the Authorization header
+    const token = req.headers.authorization?.split(' ')[1]; // Using Authorization header
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    // Verify the token using the secret key
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        // If the error is due to token expiration
+        if (err.name === 'TokenExpiredError') {
+          return res.status(401).json({ message: 'Token has expired' });
+        }
+        return res.status(401).json({ message: 'Invalid token' });
+      }
+
+      return res.status(200).json({ message: 'Token is valid', user: decoded });
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Internal Servere Error' });
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 

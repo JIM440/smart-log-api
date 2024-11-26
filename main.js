@@ -57,7 +57,6 @@ app.post('/api/fuel-prediction', async (req, res) => {
     const prediction = predictionResponse.data;
 
     // Respond with the prediction data back to the frontend
-    console.log('==========prediction============:', prediction);
     res.status(200).json({ prediction });
   } catch (error) {
     // Handle errors (e.g., connection issues, invalid responses, etc.)
@@ -81,3 +80,10 @@ sequelize.sync().then(() => {
     console.log(`Connected to DB and running on port ${PORT} 😎😎😎😎`);
   });
 });
+
+// {
+//   "name": "Jane Smith",
+//   "email": "jane.smith@example.com",
+//   "password": "another_hashed_password",
+//   "isAdmin": true
+//  }
